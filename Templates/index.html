@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Image Style Transfer</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: url('https://res.cloudinary.com/devpost/image/fetch/s--HL3Pf3A7--/c_limit,f_auto,fl_lossy,q_auto:eco,w_900/https://github.com/titu1994/Neural-Style-Transfer/blob/master/images/output/Sunlit-Mountain.jpg%3Fraw%3Dtrue') no-repeat center center fixed;
+            background-size: cover;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+            height: 100%;
+        }
+
+        h1 {
+            background-color: rgba(0, 0, 0, 0.7);
+            color: #fff;
+            padding: 20px;
+            margin: 0;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 20px auto;
+            background-color: transparent;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+            padding: 20px;
+        }
+
+        form {
+            margin-top: 20px;
+        }
+
+        label {
+            display: block;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .file-input-label {
+            background-color: #333;
+            color: #fff;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        .file-input-label.drag-over {
+            background-color: #555;
+        }
+
+        input[type="submit"] {
+            background-color: #333;
+            color: #fff;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        h2 {
+            margin-top: 20px;
+        }
+
+        img {
+            max-width: 100%;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+
+        /* Add styles for image previews */
+        .image-preview {
+            display: none;
+            max-width: 100px;
+            margin-top: 10px;
+        }
+
+        /* Style the drop zone */
+        .drop-zone {
+            border: 2px dashed #333;
+            border-radius: 5px;
+            padding: 20px;
+            margin-top: 10px;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center; /* Center-align content horizontally */
+            justify-content: center; /* Center-align content vertically */
+        }
+
+        .drop-zone.drag-over {
+            background-color: #555;
+        }
+    </style>
+</head>
+<body>
+    <h1>Image Style Transfer</h1>
+    <div class="container">
+        <h2>Upload Images</h2>
+        <form method="POST" enctype="multipart/form-data">
+            <div class="drop-zone" id="content-drop-zone">
+                <label for="content_image">Drag and drop or click to upload Content Image</label>
+                <input type="file" name="content_image" id="content_image" class="file-input" accept=".png, .jpg, .jpeg">
+                <img class="image-preview" id="content-image-preview" src="#" alt="Content Image Preview">
+            </div>
+            
+            <div class="drop-zone" id="style-drop-zone">
+                <label for="style_image">Drag and drop or click to upload Style Image</label>
+                <input type="file" name="style_image" id="style_image" class="file-input" accept=".png, .jpg, .jpeg">
+                <img class="image-preview" id="style-image-preview" src="#" alt="Style Image Preview">
+            </div>
+            
+            <input type="submit" value="Transfer Style">
+        </form>
+        {% if result %}
+        <h2>Stylized Image</h2>
+        <img src="{{ url_for('uploaded_file', filename='output.png') }}" alt="Stylized Image">
+        {% endif %}
+    </div>
+    
+    <script>
+        // Function to handle file input change
+        function handleFileInputChange(fileInputId, previewId) {
+            const fileInput = document.getElementById(fileInputId);
+            const imagePreview = document.getElementById(previewId);
+
+            const file = fileInput.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    imagePreview.src = e.target.result;
+                    imagePreview.style.display = "block";
+                };
+                reader.readAsDataURL(file);
+            } else {
+                imagePreview.style.display = "none";
+            }
+        }
+
+        // Add drag and drop functionality
+        function handleDragOver(event, dropZone) {
+            event.preventDefault();
+            dropZone.classList.add('drag-over');
+        }
+
+        function handleDragLeave(event, dropZone) {
+            event.preventDefault();
+            dropZone.classList.remove('drag-over');
+        }
+
+        function handleDrop(event, fileInputId, dropZone, previewId) {
+            event.preventDefault();
+            const dropZoneElement = document.getElementById(dropZone);
+            dropZoneElement.classList.remove('drag-over');
+
+            const fileInput = document.getElementById(fileInputId);
+            const dt = event.dataTransfer;
+            const file = dt.files[0];
+
+            fileInput.files = dt.files;
+
+            handleFileInputChange(fileInputId, previewId);
+        }
+
+        // Attach event listeners
+        document.getElementById("content_image").addEventListener("change", () => {
+            handleFileInputChange("content_image", "content-image-preview");
+        });
+
+        document.getElementById("style_image").addEventListener("change", () => {
+            handleFileInputChange("style_image", "style-image-preview");
+        });
+
+        const contentDropZone = document.getElementById("content-drop-zone");
+        contentDropZone.addEventListener("dragover", (e) => handleDragOver(e, "content-drop-zone"));
+        contentDropZone.addEventListener("dragleave", (e) => handleDragLeave(e, "content-drop-zone"));
+        contentDropZone.addEventListener("drop", (e) => handleDrop(e, "content_image", "content-drop-zone", "content-image-preview"));
+
+        const styleDropZone = document.getElementById("style-drop-zone");
+        styleDropZone.addEventListener("dragover", (e) => handleDragOver(e, "style-drop-zone"));
+        styleDropZone.addEventListener("dragleave", (e) => handleDragLeave(e, "style-drop-zone"));
+        styleDropZone.addEventListener("drop", (e) => handleDrop(e, "style_image", "style-drop-zone", "style-image-preview"));
+    </script>
+    </div>
+</body>
+</html>
